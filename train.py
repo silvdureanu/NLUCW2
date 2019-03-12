@@ -210,8 +210,6 @@ def validate(args, model, criterion, valid_dataset, epoch):
 if __name__ == '__main__':
     args = get_args()
     args.device_id = 0
-    #Set niceness for DICE
-    os.nice(11)
     # Set up logging to file
     logging.basicConfig(filename=args.log_file, filemode='a', level=logging.INFO,
                         format='%(levelname)s: %(message)s')
