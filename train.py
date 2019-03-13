@@ -125,6 +125,19 @@ def main(args):
             '''
             ___QUESTION-1-DESCRIBE-F-START___
             Describe what the following lines of code do.
+
+            The output is formed by running the entire model on the input data.
+            A loss value is then computed using the previously defined criterion, a PyTorch object that
+            computes the cross-entropy loss between output(which is reshaped using view into
+            an indefinite number of rows, and a number of columns equal to the last dimmension of output)
+            and the target tokens in the sample data, for each . The loss is then normalised by dividing by the number
+            of examples (len(sample['src_lengths'])).
+            Backpropagation is then performed using the loss tensor to find the gradients of the parameters, and these
+                gradients are then normalised using grad_norm, which performs a sort of regularisation, clipping the
+                gradients to be less than some value specified in clip_norm (4.0 by default)
+            optimizer.step() then performs parameter updates using the stored gradient values, and optimizer.zero_grad resets
+            the gradients to zero, as they are additively computed (i.e., they could otherwise just keep increasing)
+
             '''
             output, _ = model(sample['src_tokens'], sample['src_lengths'], sample['tgt_inputs'])
             loss = \
