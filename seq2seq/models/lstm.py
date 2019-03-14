@@ -251,7 +251,9 @@ class LSTMDecoder(Seq2SeqDecoder):
         self.use_lexical_model = use_lexical_model
         if self.use_lexical_model:
             # __QUESTION: Add parts of decoder architecture corresponding to the LEXICAL MODEL here
-            pass
+            self.embednet = nn.Sequential(nn.Linear(embed_dim,hidden_size),nn.Linear(hidden_size,embed_dim))
+            self.lexical_projection = nn.Linear(embed_dim, len(dictionary))
+
             # TODO: --------------------------------------------------------------------- /CUT
 
     def forward(self, tgt_inputs, encoder_out, incremental_state=None):
@@ -263,7 +265,6 @@ class LSTMDecoder(Seq2SeqDecoder):
         # __QUESTION : Following code is to assist with the LEXICAL MODEL implementation
         # Recover encoder input
         src_embeddings = encoder_out['src_embeddings']
-
         src_out, src_hidden_states, src_cell_states = encoder_out['src_out']
         src_mask = encoder_out['src_mask']
         src_time_steps = src_out.size(0)
@@ -347,7 +348,12 @@ class LSTMDecoder(Seq2SeqDecoder):
                 if self.use_lexical_model:
                     # __QUESTION: Compute and collect LEXICAL MODEL context vectors here
                     # TODO: --------------------------------------------------------------------- CUT
-                    pass
+                    #step weights are (batch*timesteps), embeddings are (timesteps*batch*embed_size)
+                    #weighted_embeds = torch.tanh(torch.mm(step_attn_weights, src_embeddings.squeeze(1))) (hack for batch size of 1)
+                    weighted_embeds = torch.tanh(torch.bmm(step_attn_weights.unsqueeze(1), src_embeddings.transpose(0,1)).squeeze(1))
+                    skipnet_result = torch.tanh(self.embednet(weighted_embeds)) + weighted_embeds
+                    lexical_contexts.append(skipnet_result)
+                    #pass
                     # TODO: --------------------------------------------------------------------- /CUT
 
             input_feed = F.dropout(input_feed, p=self.dropout_out, training=self.training)
@@ -369,7 +375,27 @@ class LSTMDecoder(Seq2SeqDecoder):
 
         if self.use_lexical_model:
             # __QUESTION: Incorporate the LEXICAL MODEL into the prediction of target tokens here
-            pass
+            lexical_output = torch.cat(lexical_contexts,dim=0).view(tgt_time_steps,batch_size,self.embed_dim)
+            lexical_output = lexical_output.transpose(0,1)
+            lexical_output = self.lexical_projection(lexical_output)
+
+            #Normalise
+            for i in lexical_output:
+                for j in i:
+                    j = j/ (j.sum())
+            for i in decoder_output:
+                for j in i:
+                    j = j/ (j.sum())
+
+
+            #lexical_output = F.softmax(lexical_output,dim=-1)
+            #decoder_output = F.softmax(decoder_output,dim=-1)
+            #print(lexical_output)
+            #decoder_output = F.softmax(decoder_output + lexical_output,dim=-1)'''
+            decoder_output = lexical_output + decoder_output
+
+
+
             # TODO: --------------------------------------------------------------------- /CUT
 
         return decoder_output, attn_weights
