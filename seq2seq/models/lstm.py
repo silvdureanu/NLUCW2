@@ -288,9 +288,8 @@ class LSTMDecoder(Seq2SeqDecoder):
         If the decoder input is not fed token by token (i.e. incremental_state is None), or if this is the first
         token, there will be no cache hit, and cached_state will be None.
 
-        input_feed is the input representation for the decoder (and is gradually transformed into its output)
-        It is initially either 0 or the previous pass's output, and it is transformed
-        at each step into the input for the next layer or timestep.
+        input_feed is the output feed of the decoder. At each timestep, it inputs the previous step's output representation
+            to the network, and is gradually transformed into the current step's output.
         '''
 
         cached_state = utils.get_incremental_state(self, incremental_state, 'cached_state')
